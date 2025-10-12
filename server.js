@@ -21,14 +21,23 @@ async function verifyWechatLogin(sessionCode) {
     grant_type: 'authorization_code'
   };
   
+  console.log('微信登录校验参数:', {
+    appid: process.env.WECHAT_APPID,
+    secret: process.env.WECHAT_SECRET ? '已设置' : '未设置',
+    js_code: sessionCode
+  });
+  
   try {
     const response = await axios.get(url, { params });
+    console.log('微信登录校验响应:', response.data);
+    
     if (response.data.errcode) {
-      throw new Error(`微信登录校验失败: ${response.data.errmsg}`);
+      throw new Error(`微信登录校验失败: ${response.data.errmsg} (错误码: ${response.data.errcode})`);
     }
     return response.data;
   } catch (error) {
     console.error('微信登录校验错误:', error.message);
+    console.error('完整错误信息:', error.response?.data);
     throw new Error('微信登录校验失败');
   }
 }
@@ -116,6 +125,32 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     service: 'Smart Itinerary Backend'
   });
+});
+
+// 测试腾讯位置服务Key
+app.get('/test-key', async (req, res) => {
+  try {
+    const testUrl = 'https://apis.map.qq.com/ws/geocoder/v1/';
+    const response = await axios.get(testUrl, {
+      params: {
+        key: process.env.TENCENT_MAP_KEY,
+        address: '北京市天安门',
+        output: 'json'
+      }
+    });
+    
+    res.json({
+      status: 'success',
+      message: 'Key验证成功',
+      data: response.data
+    });
+  } catch (error) {
+    res.json({
+      status: 'error',
+      message: 'Key验证失败',
+      error: error.response?.data || error.message
+    });
+  }
 });
 
 // 错误处理中间件
