@@ -17,13 +17,8 @@
     }
   ],
   "env": {
-      "TENCENT_MAP_KEY": "STZBZ-GMS67-P5NXA-HJBNB-IDU7Z-HIBDE",
-      "WECHAT_APPID": "wxf67c80779fb19c18",
-      "WECHAT_SECRET": "32898b55ca2089e99d2e418fee70bcc6"
-  },
-  "functions": {
-    "server.js": {
-      "maxDuration": 30
-    }
+    "TENCENT_MAP_KEY": "STZBZ-GMS67-P5NXA-HJBNB-IDU7Z-HIBDE",
+    "WECHAT_APPID": "wxf67c80779fb19c18",
+    "WECHAT_SECRET": "32898b55ca2089e99d2e418fee70bcc6"
   }
 }
