@@ -11,7 +11,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 简化的微信登录校验
+// 微信登录校验
 async function verifyWechatLogin(sessionCode) {
   const url = 'https://api.weixin.qq.com/sns/jscode2session';
   const params = {
