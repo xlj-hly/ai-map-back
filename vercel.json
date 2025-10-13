@@ -2,18 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "server.js",
+      "src": "main.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
-      "src": "/api/lbs/(.*)",
-      "dest": "/server.js"
-    },
-    {
-      "src": "/health",
-      "dest": "/server.js"
+      "src": "/(.*)",
+      "dest": "/main.js"
     }
   ],
   "env": {

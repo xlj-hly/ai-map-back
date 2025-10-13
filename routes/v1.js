@@ -1,17 +1,8 @@
 const express = require('express');
 const axios = require('axios');
-const cors = require('cors');
 const crypto = require('crypto');
 
-require('dotenv').config();
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-// 中间件配置
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+const router = express.Router();
 
 // 获取access_token
 async function getAccessToken() {
@@ -46,7 +37,7 @@ async function checkSessionKey(accessToken, openid, sessionKey) {
 }
 
 // 临时code登录 - 获取openid和session_key
-app.get('/login/:code', async (req, res) => {
+router.get('/login/:code', async (req, res) => {
   try {
     const url = 'https://api.weixin.qq.com/sns/jscode2session';
     const params = {
@@ -81,7 +72,7 @@ app.get('/login/:code', async (req, res) => {
 });
 
 // session_key验证
-app.get('/verify', async (req, res) => {
+router.get('/verify', async (req, res) => {
   try {
     const { openid, session_key } = req.query;
     
@@ -137,7 +128,7 @@ async function verifyWechatLogin(sessionCode) {
 }
 
 // 通用API转发
-app.all('/api/lbs/*', async (req, res) => {
+router.all('/api/lbs/*', async (req, res) => {
   try {
     console.log('收到请求:', req.method, req.path, req.query);
     
@@ -213,7 +204,7 @@ app.all('/api/lbs/*', async (req, res) => {
 });
 
 // 健康检查接口
-app.get('/health', (req, res) => {
+router.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -222,7 +213,7 @@ app.get('/health', (req, res) => {
 });
 
 // 测试腾讯位置服务Key
-app.get('/test-key', async (req, res) => {
+router.get('/test-key', async (req, res) => {
   try {
     const testUrl = 'https://apis.map.qq.com/ws/geocoder/v1/';
     const response = await axios.get(testUrl, {
@@ -247,30 +238,4 @@ app.get('/test-key', async (req, res) => {
   }
 });
 
-// 错误处理中间件
-app.use((err, req, res, next) => {
-  console.error('未处理的错误:', err);
-  res.status(500).json({
-    error: '服务器内部错误',
-    code: 'UNHANDLED_ERROR'
-  });
-});
-
-// 404处理
-app.use('*', (req, res) => {
-  res.status(404).json({
-    error: '接口不存在',
-    path: req.originalUrl,
-    code: 'NOT_FOUND'
-  });
-});
-
-app.listen(PORT, () => {
-  console.log(`🚀 智能行程后端服务运行在端口 ${PORT}`);
-  console.log(`📡 健康检查: http://localhost:${PORT}/health`);
-  console.log(`🔐 临时code登录: http://localhost:${PORT}/login/:code`);
-  console.log(`✅ session_key验证: http://localhost:${PORT}/verify`);
-  console.log(`🗺️  API转发: http://localhost:${PORT}/api/lbs/*`);
-});
-
-module.exports = app;
+module.exports = router;
