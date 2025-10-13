@@ -11,7 +11,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 微信登录校验
+// 简化的微信登录校验
 async function verifyWechatLogin(sessionCode) {
   const url = 'https://api.weixin.qq.com/sns/jscode2session';
   const params = {
@@ -21,23 +21,16 @@ async function verifyWechatLogin(sessionCode) {
     grant_type: 'authorization_code'
   };
   
-  console.log('微信登录校验参数:', {
-    appid: process.env.WECHAT_APPID,
-    secret: process.env.WECHAT_SECRET ? '已设置' : '未设置',
-    js_code: sessionCode
-  });
-  
   try {
     const response = await axios.get(url, { params });
-    console.log('微信登录校验响应:', response.data);
     
     if (response.data.errcode) {
-      throw new Error(`微信登录校验失败: ${response.data.errmsg} (错误码: ${response.data.errcode})`);
+      throw new Error(`微信登录校验失败: ${response.data.errmsg}`);
     }
+    
     return response.data;
   } catch (error) {
     console.error('微信登录校验错误:', error.message);
-    console.error('完整错误信息:', error.response?.data);
     throw new Error('微信登录校验失败');
   }
 }
