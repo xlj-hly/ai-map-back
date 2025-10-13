@@ -11,6 +11,106 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// 获取access_token
+async function getAccessToken() {
+  const url = 'https://api.weixin.qq.com/cgi-bin/token';
+  const params = {
+    grant_type: 'client_credential',
+    appid: process.env.WECHAT_APPID,
+    secret: process.env.WECHAT_SECRET
+  };
+  
+  const response = await axios.get(url, { params });
+  if (response.data.errcode) {
+    throw new Error(`获取access_token失败: ${response.data.errmsg}`);
+  }
+  return response.data.access_token;
+}
+
+// 验证登录态 - 使用checkSessionKey接口
+async function checkSessionKey(accessToken, openid, sessionKey) {
+  const crypto = require('crypto');
+  const signature = crypto.createHmac('sha256', sessionKey).update('').digest('hex');
+  
+  const url = 'https://api.weixin.qq.com/wxa/checksession';
+  const params = {
+    access_token: accessToken,
+    openid: openid,
+    signature: signature,
+    sig_method: 'hmac_sha256'
+  };
+  
+  const response = await axios.get(url, { params });
+  return response.data;
+}
+
+// 临时code登录 - 获取openid和session_key
+app.get('/login/:code', async (req, res) => {
+  try {
+    const url = 'https://api.weixin.qq.com/sns/jscode2session';
+    const params = {
+      appid: process.env.WECHAT_APPID,
+      secret: process.env.WECHAT_SECRET,
+      js_code: req.params.code,
+      grant_type: 'authorization_code'
+    };
+    
+    const response = await axios.get(url, { params });
+    
+    if (response.data.errcode) {
+      throw response.data;
+    }
+    
+    const { openid, session_key } = response.data;
+    
+    res.json({
+      code: 0,
+      success: true,
+      message: '临时code登录成功',
+      data: { openid, session_key }
+    });
+  } catch (err) {
+    res.status(400).json({
+      code: err.errcode || -1,
+      success: false,
+      message: err.errmsg || '登录失败',
+      data: err
+    });
+  }
+});
+
+// session_key验证
+app.get('/verify', async (req, res) => {
+  try {
+    const { openid, session_key } = req.query;
+    
+    if (!openid || !session_key) {
+      return res.status(400).json({
+        code: 400,
+        success: false,
+        message: '缺少openid或session_key参数'
+      });
+    }
+    
+    const accessToken = await getAccessToken();
+    const checkResult = await checkSessionKey(accessToken, openid, session_key);
+    
+    res.json({
+      code: 0,
+      success: true,
+      message: 'session_key验证成功',
+      data: checkResult
+    });
+  } catch (err) {
+    res.status(400).json({
+      code: err.errcode || -1,
+      success: false,
+      message: err.errmsg || '验证失败',
+      data: err
+    });
+  }
+});
+
 // 微信登录校验
 async function verifyWechatLogin(sessionCode) {
   const url = 'https://api.weixin.qq.com/sns/jscode2session';
@@ -40,7 +140,7 @@ app.all('/api/lbs/*', async (req, res) => {
   try {
     console.log('收到请求:', req.method, req.path, req.query);
     
-    // 1. 校验微信登录
+    // 1. 校验微信登录 - 支持openid或code
     const { session_code } = req.query;
     if (!session_code) {
       return res.status(400).json({ 
@@ -167,6 +267,8 @@ app.use('*', (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 智能行程后端服务运行在端口 ${PORT}`);
   console.log(`📡 健康检查: http://localhost:${PORT}/health`);
+  console.log(`🔐 临时code登录: http://localhost:${PORT}/login/:code`);
+  console.log(`✅ session_key验证: http://localhost:${PORT}/verify`);
   console.log(`🗺️  API转发: http://localhost:${PORT}/api/lbs/*`);
 });
 
